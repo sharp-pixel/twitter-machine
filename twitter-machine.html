@@ -1,0 +1,43 @@
+<head>
+  <title>Twitter - Copy Followers</title>
+  <!-- Latest compiled and minified CSS -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+  <!-- Optional theme -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css">
+  <!-- Latest compiled and minified JavaScript -->
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+</head>
+
+<body>
+  <div class="container">
+    <p>Hello, @{{> whoami}}</p>
+    <h1>Copy Followers</h1>
+    {{> input}}
+
+    <ul>
+      {{#each followers}}
+        {{> follower}}
+      {{/each}}
+    </ul>
+  </div>
+</body>
+
+<!-- Template for input -->
+<template name="input">
+  <form class="form-inline list-followers">
+    <div class="input-group">
+      <div class="input-group-addon">@</div>
+      <input type="text" class="form-control" name="username" placeholder="username">
+    </div>
+    <button type="submit" class="btn btn-primary btn-small">Get</button>
+  </form>
+</template>
+
+<!-- Template for one follower -->
+<template name="follower">
+  <li>{{follower.screen_name}}</li>
+</template>
+
+<template name="whoami">
+  {{whoami}}
+</template>
