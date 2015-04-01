@@ -25,14 +25,7 @@ if (Meteor.isClient) {
 
   Template.whoami.helpers({
     whoami: function() {
-      var me = Session.get('me');
-
-      if (me == '') {
-        me = Meteor.call('whoami');
-        Session.set('me', me);
-      }
-
-      return me;
+      return '';
     }
   });
 }
@@ -99,33 +92,33 @@ if (Meteor.isServer) {
 
       var followers = future.wait(); // Wait for future to have its value set
 
-      // var followers = [];
-      // var markFollowers = Meteor.wrapAync(function() {
-      //   // Check whether already following
-      //   T.get('friendships/show',
-      //   {
-      //     source_screen_name: me,
-      //     target_screen_name: user.screen_name
-      //   }, function(err, data, response) {
-      //     if (!data.relationship.source.following) {
-      //       console.log('Request to follow @' + user.screen_name);
+      // Check whether already following
+      followers.forEach(function(user, index, array) {
+        T.get('friendships/show',
+        {
+          source_screen_name: me,
+          target_screen_name: user.screen_name
+        }, function(err, data, response) {
+          if (!data.relationship.source.following) {
+            console.log('Request to follow @' + user.screen_name);
 
-      //       T.post('friendships/create',
-      //       {
-      //         screen_name: user.screen_name
-      //       },
-      //       function(err, data, response) {
-      //         console.log(data);
-      //       });
+            array[index].following = false;
+          }
+          else {
+            console.log('Already following @' + user.screen_name);
 
-      //       followers.push({screen_name: user.screen_name, following: false});
-      //     }
-      //     else {
-      //       console.log('Already following @' + user.screen_name);
-      //       followers.push({screen_name: user.screen_name, following: true});
-      //     }
-      //   });
-      // }, this);
+            array[index].following = true;
+          }
+        });
+      });
+
+      // T.post('friendships/create',
+      // {
+      //   screen_name: user.screen_name
+      // },
+      // function(err, data, response) {
+      //   console.log(data);
+      // });
 
       console.log('Followers =>');
       console.log(followers);
