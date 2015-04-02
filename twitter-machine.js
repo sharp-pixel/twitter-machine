@@ -1,4 +1,9 @@
+var Followers = new Mongo.Collection('followers');
+
 if (Meteor.isClient) {
+  //Meteor.subscribe('whoami');
+  Meteor.subscribe('followers');
+
   Session.setDefault('me', '');
   Session.setDefault('followers', []);
   
@@ -10,22 +15,23 @@ if (Meteor.isClient) {
       var username = event.target.username.value;
 
       // Call server method to do the work
-      var followers = Meteor.call('getFollowers', username);
-      Session.set('followers', followers); // set the session variable that will be used by the template helper.
-      console.log(followers);
+      Meteor.call('getFollowers', username, function(err, res) {
+        console.log('Done getting followers');
+      });
     }
   });
 
   Template.body.helpers({
     followers: function() {
-      console.log(Session.get('followers'));
-      return Session.get('followers'); // get the session variable that has been set by the submit event.
+      return Followers.find({});
     }
   });
 
   Template.whoami.helpers({
     whoami: function() {
-      return '';
+      var me = Meteor.call('whoami', function(err, res) {
+        Session.set('me', res); // set the session variable that will be used by the template helper.
+      });
     }
   });
 }
@@ -45,6 +51,10 @@ if (Meteor.isServer) {
     T.get('account/settings', {}, function(err, data, response) {
       me = data.screen_name;
     });
+  });
+
+  Meteor.publish('followers', function() {
+    return Followers.find();
   });
 
   Meteor.methods({
@@ -92,6 +102,8 @@ if (Meteor.isServer) {
 
       var followers = future.wait(); // Wait for future to have its value set
 
+      future = new Future();
+      var count = 0;
       // Check whether already following
       followers.forEach(function(user, index, array) {
         T.get('friendships/show',
@@ -99,18 +111,27 @@ if (Meteor.isServer) {
           source_screen_name: me,
           target_screen_name: user.screen_name
         }, function(err, data, response) {
-          if (!data.relationship.source.following) {
-            console.log('Request to follow @' + user.screen_name);
+          if (data !== null && data.relationship!== null) {
+            if (!data.relationship.source.following) {
+              console.log('Request to follow @' + user.screen_name);
 
-            array[index].following = false;
+              array[index].following = false;
+            }
+            else {
+              console.log('Already following @' + user.screen_name);
+
+              array[index].following = true;
+            }
           }
           else {
-            console.log('Already following @' + user.screen_name);
-
-            array[index].following = true;
+            console.log('Hmmm. data is null ')
           }
+          ++count;
+          if (count == array.length) future['return']();
         });
       });
+
+      future.wait();
 
       // T.post('friendships/create',
       // {
@@ -120,10 +141,12 @@ if (Meteor.isServer) {
       //   console.log(data);
       // });
 
-      console.log('Followers =>');
-      console.log(followers);
+      followers.forEach(function(user) {
+        user.createdAt = new Date();
+        Followers.insert(user);
+      });
 
-      return followers;
+      console.log('Done');
     }
   });
 }
