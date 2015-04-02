@@ -1,37 +1,52 @@
-var Followers = new Mongo.Collection('followers');
+// simple-todos.js
+Followers = new Mongo.Collection("followers");
 
 if (Meteor.isClient) {
-  //Meteor.subscribe('whoami');
-  Meteor.subscribe('followers');
+  Meteor.subscribe("followers");
 
-  Session.setDefault('me', '');
-  Session.setDefault('followers', []);
-  
-  Template.input.helpers({
+  // This code only runs on the client
+  Template.body.helpers({
+    followers: function () {
+      if (Session.get("hideFollowing")) {
+        // If hide completed is checked, filter tasks
+        return Followers.find({following: {$ne: true}}, {sort: {createdAt: -1}});
+      } else {
+        // Otherwise, return all of the tasks
+        return Followers.find({}, {sort: {createdAt: -1}});
+      }
+    },
+    hideFollowing: function () {
+      return Session.get("hideFollowing");
+    }
   });
 
-  Template.input.events({
-    'submit .list-followers': function(event) {
-      var username = event.target.username.value;
+  Template.body.events({
+    "submit .search-followers": function (event) {
+      // This function is called when the new task form is submitted
+
+      var username = event.target.text.value;
 
       // Call server method to do the work
       Meteor.call('getFollowers', username, function(err, res) {
-        console.log('Done getting followers');
+        console.log('getFollowers returned');
       });
+
+      // Prevent default form submit
+      return false;
+    },
+    "change .hide-following input": function (event) {
+      Session.set("hideFollowing", event.target.checked);
     }
   });
 
-  Template.body.helpers({
-    followers: function() {
-      return Followers.find({});
-    }
-  });
-
-  Template.whoami.helpers({
-    whoami: function() {
-      var me = Meteor.call('whoami', function(err, res) {
-        Session.set('me', res); // set the session variable that will be used by the template helper.
-      });
+  Template.follower.events({
+    "click .toggle-checked": function () {
+      // Set the checked property to the opposite of its current value
+      //Followers.update(this._id, {$set: {checked: !this.checked}});
+    },
+    "click .follow": function () {
+      //Followers.remove(this._id);
+      console.log('Request follow');
     }
   });
 }
@@ -53,14 +68,11 @@ if (Meteor.isServer) {
     });
   });
 
-  Meteor.publish('followers', function() {
+  Meteor.publish("followers", function () {
     return Followers.find();
   });
 
   Meteor.methods({
-    'whoami' : function() {
-      return me;
-    },
     'getFollowers' : function(username) {
       console.log('Getting followers server-side');
 
@@ -73,8 +85,8 @@ if (Meteor.isServer) {
         },
         function(err, data, response) {
           var count = 0;
-          var max_followers = 25;
-          var regexp = /.*paris/i;
+          var max_followers = 200;
+          //var regexp = /.*paris/i;
           var followers = [];
 
           if (data != null) {
@@ -82,12 +94,12 @@ if (Meteor.isServer) {
               if (user.location !== '') {
                 //console.log('Follower ' + user.name + ' (' + user.lang + ') lives in ' + user.location);
 
-                if (regexp.exec(user.location)) {
+                //if (regexp.exec(user.location)) {
                   if (count < max_followers) {
                     followers.push({screen_name: user.screen_name});
                     ++count;
                   }
-                }
+                //}
               }
               else {
                 //console.log('Follower ' + user.name + ' (' + user.lang + ') could not be localized');
@@ -111,7 +123,7 @@ if (Meteor.isServer) {
           source_screen_name: me,
           target_screen_name: user.screen_name
         }, function(err, data, response) {
-          if (data !== null && data.relationship!== null) {
+          if (data != null && data.relationship != null) {
             if (!data.relationship.source.following) {
               console.log('Request to follow @' + user.screen_name);
 
@@ -143,7 +155,7 @@ if (Meteor.isServer) {
 
       followers.forEach(function(user) {
         user.createdAt = new Date();
-        Followers.insert(user);
+        Followers.insert(user); // TODO: update if exists
       });
 
       console.log('Done');
