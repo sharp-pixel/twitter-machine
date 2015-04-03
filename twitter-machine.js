@@ -15,7 +15,7 @@ if (Meteor.isClient) {
         return Followers.find({}, {sort: {createdAt: -1}});
       }
     },
-    hideFollowing: function () {
+    hideFollowing: function() {
       return Session.get("hideFollowing");
     }
   });
@@ -26,10 +26,10 @@ if (Meteor.isClient) {
 
       var username = event.target.text.value;
 
+      //Followers.remove({}); // clear result
+
       // Call server method to do the work
-      Meteor.call('getFollowers', username, function(err, res) {
-        console.log('getFollowers returned');
-      });
+      Meteor.call('getFollowers', username);
 
       // Prevent default form submit
       return false;
