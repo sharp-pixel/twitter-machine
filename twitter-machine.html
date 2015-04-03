@@ -26,10 +26,12 @@
 
 <template name="follower">
   <li class="{{#if following}}checked{{/if}}">
+    {{#unless following}}
     <button class="follow">&plus;</button>
-
+    {{/unless}}
     <!-- <input type="checkbox" checked="{{checked}}" class="toggle-checked" /> -->
 
+    <img src="{{profile_image_url}}" alt="" width="50" height="50">
     <span class="text">@{{screen_name}}</span>
   </li>
 </template>

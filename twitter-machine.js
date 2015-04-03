@@ -91,8 +91,8 @@ if (Meteor.isServer) {
           function(err, data, response) {
             if (data != null) {
               data.users.forEach(function(user) {
-                followers.push({screen_name: user.screen_name, following: user.following});
-                // cannot insert element to collection at this point?
+                followers.push(user);
+                // cannot insert element to collection at this point because we are not within a Fiber
               });
 
               future['return']({
