@@ -74,91 +74,54 @@ if (Meteor.isServer) {
 
   Meteor.methods({
     'getFollowers' : function(username) {
-      console.log('Getting followers server-side');
+      console.log('Received request to get followers for @' + username);
+      var cursor = -1;
+      var it = 0;
 
-      var future = new Future();
+      do {
+        var future = new Future();
+        var followers = [];
 
-      T.get('followers/list',
-        {
-          screen_name: username,
-          count: 200
-        },
-        function(err, data, response) {
-          var count = 0;
-          var max_followers = 200;
-          //var regexp = /.*paris/i;
-          var followers = [];
+        T.get('followers/list',
+          {
+            screen_name: username,
+            count: 200,
+            cursor: cursor
+          },
+          function(err, data, response) {
+            if (data != null) {
+              data.users.forEach(function(user) {
+                followers.push({screen_name: user.screen_name, following: user.following});
+                // cannot insert element to collection at this point?
+              });
 
-          if (data != null) {
-            data.users.forEach(function(user) {
-              if (user.location !== '') {
-                //console.log('Follower ' + user.name + ' (' + user.lang + ') lives in ' + user.location);
-
-                //if (regexp.exec(user.location)) {
-                  if (count < max_followers) {
-                    followers.push({screen_name: user.screen_name});
-                    ++count;
-                  }
-                //}
-              }
-              else {
-                //console.log('Follower ' + user.name + ' (' + user.lang + ') could not be localized');
-              }
-            });
-            console.log('done');
-
-            future['return'](followers); // Set future value
-          }
-        }
-      );
-
-      var followers = future.wait(); // Wait for future to have its value set
-
-      future = new Future();
-      var count = 0;
-      // Check whether already following
-      followers.forEach(function(user, index, array) {
-        T.get('friendships/show',
-        {
-          source_screen_name: me,
-          target_screen_name: user.screen_name
-        }, function(err, data, response) {
-          if (data != null && data.relationship != null) {
-            if (!data.relationship.source.following) {
-              console.log('Request to follow @' + user.screen_name);
-
-              array[index].following = false;
+              future['return']({
+                data: followers,
+                cursor: data.next_cursor
+              }); // Set future value
             }
             else {
-              console.log('Already following @' + user.screen_name);
-
-              array[index].following = true;
+              // Limit reached, dispatch on another process ?
+              console.log('Request limit reached for command "GET followers/list"');
+              future['return']({
+                data: [],
+                cursor: 0
+              });
             }
           }
-          else {
-            console.log('Hmmm. data is null ')
-          }
-          ++count;
-          if (count == array.length) future['return']();
+        );
+
+        var res = future.wait(); // 
+
+        cursor = res.cursor;
+
+        res.data.forEach(function(elt, index, array) {
+          Followers.insert(elt);
         });
-      });
 
-      future.wait();
-
-      // T.post('friendships/create',
-      // {
-      //   screen_name: user.screen_name
-      // },
-      // function(err, data, response) {
-      //   console.log(data);
-      // });
-
-      followers.forEach(function(user) {
-        user.createdAt = new Date();
-        Followers.insert(user); // TODO: update if exists
-      });
-
-      console.log('Done');
+        console.log('it: ' + it);
+        ++it;
+      } while (cursor != 0);
     }
   });
 }
