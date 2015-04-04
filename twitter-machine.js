@@ -1,11 +1,21 @@
 // simple-todos.js
 Followers = new Mongo.Collection("followers");
 
+Router.route('/', function() {
+  this.redirect('/nonFollowers');
+});
+
+Router.route('/nonFollowers');
+
+Router.route('/fans');
+
+Router.route('/copyFollowers');
+
 if (Meteor.isClient) {
   Meteor.subscribe("followers");
 
   // This code only runs on the client
-  Template.body.helpers({
+  Template.CopyFollowers.helpers({
     followers: function () {
       if (Session.get("hideFollowing")) {
         // If hide completed is checked, filter tasks
@@ -20,13 +30,11 @@ if (Meteor.isClient) {
     }
   });
 
-  Template.body.events({
+  Template.CopyFollowers.events({
     "submit .search-followers": function (event) {
       // This function is called when the new task form is submitted
 
-      var username = event.target.text.value;
-
-      //Followers.remove({}); // clear result
+      var username = event.target.username.value;
 
       // Call server method to do the work
       Meteor.call('getFollowers', username);
@@ -40,12 +48,7 @@ if (Meteor.isClient) {
   });
 
   Template.follower.events({
-    "click .toggle-checked": function () {
-      // Set the checked property to the opposite of its current value
-      //Followers.update(this._id, {$set: {checked: !this.checked}});
-    },
     "click .follow": function () {
-      //Followers.remove(this._id);
       console.log('Request follow');
     }
   });
@@ -77,6 +80,9 @@ if (Meteor.isServer) {
       console.log('Received request to get followers for @' + username);
       var cursor = -1;
       var it = 0;
+
+      // Clear db
+      Followers.remove({});
 
       do {
         var future = new Future();
@@ -122,6 +128,9 @@ if (Meteor.isServer) {
         console.log('it: ' + it);
         ++it;
       } while (cursor != 0);
+    },
+    'followAll' : function() {
+      console.log('Received request to follow ')
     }
   });
 }
