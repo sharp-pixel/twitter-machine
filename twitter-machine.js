@@ -1,28 +1,37 @@
 // simple-todos.js
-Followers = new Mongo.Collection("followers");
+var CopyFollowers = new Mongo.Collection("copyfollowers");
+var NonFollowers = new Mongo.Collection("nonfollowers");
+var Fans = new Mongo.Collection("fans");
+var AllFollowings = new Mongo.Collection("allfollowings");
 
 Router.route('/', function() {
   this.redirect('/nonFollowers');
 });
 
 Router.route('/nonFollowers');
-
 Router.route('/fans');
-
 Router.route('/copyFollowers');
+Router.route('/allFollowings');
 
 if (Meteor.isClient) {
-  Meteor.subscribe("followers");
+  Meteor.subscribe("copyfollowers");
+  Meteor.subscribe("nonfollowers");
+  Meteor.subscribe("fans");
+  Meteor.subscribe("allfollowings");
+
+  Meteor.startup(function() {
+    Meteor.call('init'); // populate non-followers collection on client startup
+  });
 
   // This code only runs on the client
   Template.CopyFollowers.helpers({
     followers: function () {
       if (Session.get("hideFollowing")) {
         // If hide completed is checked, filter tasks
-        return Followers.find({following: {$ne: true}}, {sort: {createdAt: -1}});
+        return CopyFollowers.find({following: {$ne: true}}, {sort: {createdAt: -1}});
       } else {
         // Otherwise, return all of the tasks
-        return Followers.find({}, {sort: {createdAt: -1}});
+        return CopyFollowers.find({}, {sort: {createdAt: -1}});
       }
     },
     hideFollowing: function() {
@@ -33,7 +42,6 @@ if (Meteor.isClient) {
   Template.CopyFollowers.events({
     "submit .search-followers": function (event) {
       // This function is called when the new task form is submitted
-
       var username = event.target.username.value;
 
       // Call server method to do the work
@@ -47,15 +55,33 @@ if (Meteor.isClient) {
     }
   });
 
-  Template.follower.events({
+  Template.user.events({
     "click .follow": function () {
       console.log('Request follow');
     }
   });
+
+  Template.NonFollowers.helpers({
+    nonfollowers: function() {
+      return NonFollowers.find({});
+    }
+  });
+
+  Template.Fans.helpers({
+    fans: function() {
+      return Fans.find({});
+    }
+  });
+
+  Template.AllFollowings.helpers({
+    allfollowings: function() {
+      return AllFollowings.find({});
+    }
+  })
 }
 
 if (Meteor.isServer) {
-  var T, me = '', Future;
+  var T, me = null, Future, Promise;
 
   Meteor.startup(function () {
     var Twit = Meteor.npmRequire('twit');
@@ -67,70 +93,244 @@ if (Meteor.isServer) {
     T = new Twit(twitter_secret);
 
     T.get('account/settings', {}, function(err, data, response) {
-      me = data.screen_name;
+      if (data != null) {
+        me = data;
+      }
+      else {
+        console.log('Request limit reached for command "GET account/settings');
+        me = null;
+      }
     });
   });
 
-  Meteor.publish("followers", function () {
-    return Followers.find();
+  Meteor.publish("copyfollowers", function() {
+    return CopyFollowers.find();
+  });
+
+  Meteor.publish("nonfollowers", function() {
+    return NonFollowers.find();
+  });
+
+  Meteor.publish("fans", function() {
+    return Fans.find();
+  });
+
+  Meteor.publish("allfollowings", function() {
+    return AllFollowings.find();
   });
 
   Meteor.methods({
-    'getFollowers' : function(username) {
+    'getFollowers': function(username) {
       console.log('Received request to get followers for @' + username);
       var cursor = -1;
-      var it = 0;
 
       // Clear db
-      Followers.remove({});
+      CopyFollowers.remove({});
 
-      do {
-        var future = new Future();
-        var followers = [];
+      var followers_ids = GetFollowersID(T, username);
+      var followers = HydrateIDs(T, followers_ids);
 
-        T.get('followers/list',
-          {
-            screen_name: username,
-            count: 200,
-            cursor: cursor
-          },
-          function(err, data, response) {
-            if (data != null) {
-              data.users.forEach(function(user) {
-                followers.push(user);
-                // cannot insert element to collection at this point because we are not within a Fiber
-              });
+      followers.forEach(function(elt, index, array) {
+        CopyFollowers.insert(elt);
+      });
+    },
+    'copyFollowers': function() {
+      console.log('Received request to copy followers');
+    },
+    'init': function() {
+      console.log('Initialize current user collections');
 
-              future['return']({
-                data: followers,
-                cursor: data.next_cursor
-              }); // Set future value
-            }
-            else {
-              // Limit reached, dispatch on another process ?
-              console.log('Request limit reached for command "GET followers/list"');
-              future['return']({
-                data: [],
-                cursor: 0
-              });
-            }
-          }
-        );
+      // Clear db
+      NonFollowers.remove({});
+      Fans.remove({});
+      AllFollowings.remove({});
 
-        var res = future.wait(); // 
+      if (me !== null && me.screen_name !== '') {
+        var username = me.screen_name;
 
-        cursor = res.cursor;
-
-        res.data.forEach(function(elt, index, array) {
-          Followers.insert(elt);
+        var followers = GetFollowersID(T, username);
+        var friends = GetFriendsID(T, username);
+        var non_followers_IDs = minus(friends, followers); // non-followers are people followed by current user but not following him back.
+        var non_followers = HydrateIDs(T, non_followers_IDs);
+        
+        non_followers.forEach(function(elt, index, array) {
+         NonFollowers.insert(elt);
         });
 
-        console.log('it: ' + it);
-        ++it;
-      } while (cursor != 0);
-    },
-    'followAll' : function() {
-      console.log('Received request to follow ')
+        var fans_IDs = minus(followers, friends); // fans are people that follow current user but not followed back.
+        var fans = HydrateIDs(T, fans_IDs);
+        
+        fans.forEach(function(elt, index, array) {
+         Fans.insert(elt);
+        });
+
+        var following = HydrateIDs(T, friends);
+
+        following.forEach(function(elt, index, array) {
+         AllFollowings.insert(elt);
+        });
+      }
     }
   });
+}
+
+function GetFollowersID(T, username) {
+  cursor = -1;
+  var followers = [];
+
+  // Get followers
+  do {
+    var future = new Future();
+
+    T.get('followers/ids',
+      {
+        screen_name: username,
+        count: 5000,
+        cursor: cursor
+      },
+      function(err, data, response) {
+        if (data != null) {        
+          data.ids.forEach(function(id) {
+            followers.push(id);
+          });
+
+          future['return']({
+            cursor: data.next_cursor
+          }); // Set future value
+        }
+        else {
+          // Limit reached, dispatch on another process ?
+          console.log('Request limit reached for command "GET followers/ids"');
+          future['return']({
+            data: [],
+            cursor: 0
+          });
+        }
+      }
+    );
+
+    var res = future.wait(); // serialize at this point
+
+    cursor = res.cursor;
+  } while (cursor != 0);
+  
+  return followers;
+}
+
+function GetFriendsID(T, username) {
+  var cursor = -1;
+  var friends = [];
+
+  // Get friends
+  do {
+    var future = new Future();
+
+    T.get('friends/ids',
+      {
+        screen_name: username,
+        count: 5000, // 5000 is the biggest chunk size allowed by Twitter.
+        cursor: cursor
+      },
+      function(err, data, response) {
+        if (data != null) {        
+          data.ids.forEach(function(id) {
+            friends.push(id);
+          });
+
+          future['return']({
+            cursor: data.next_cursor
+          }); // Set future value
+        }
+        else {
+          // Limit reached, dispatch on another process ?
+          console.log('Request limit reached for command "GET friends/ids"');
+          future['return']({
+            data: [],
+            cursor: 0
+          });
+        }
+      }
+    );
+
+    var res = future.wait(); // 
+
+    cursor = res.cursor;
+  } while (cursor != 0);
+
+  return friends;
+}
+
+// Get Twitter user objects from IDs
+function HydrateIDs(T, array) {
+  var result = [];
+
+  if (array == null) {
+    console.log('null array');
+
+    return result;
+  }
+
+  // Perform hydration in chunks of 100 people at a time.
+  // 100 is the max chunk size allowed by Twitter.
+  for (var i = 0; i < array.length; i += 100) {
+    var future = new Future();
+    var temp = array.slice(i, i + 100).join();
+
+    T.get('users/lookup',
+      {
+        user_id: temp,
+        include_entities: true
+      },
+      function(err, data, response) {
+        if (data != null) {
+          future['return'](data);
+        }
+        else {
+          console.log('Request limit reached for command "GET users/lookup"');
+        }
+      }
+    );
+
+    var res = future.wait();
+
+    result = result.concat(res);
+  }
+
+  return result;
+}
+
+// Returns elements of A ∩ B
+function intersection(A, B) {
+  var C = [];
+
+  for (var i = 0; i < A.length; ++i) {
+    for (var j = 0; j < B.length; ++j) {
+      if (A[i] == B[j]) {
+        C.push(A[i]);
+        break;
+      }
+    }
+  }
+
+  return C;
+}
+
+// Returns elements of A \ B
+function minus(A, B) {
+  var C = [];
+
+  for (var i = 0; i < A.length; ++i) {
+    var found = false;
+    for (var j = 0; j < B.length; ++j) {
+      if (A[i] == B[j]) {
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      C.push(A[i]);
+    }
+  }
+
+  return C;
 }

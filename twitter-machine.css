@@ -109,6 +109,10 @@ header .hide-following {
   margin-left: 5px;
 }
 
+img {
+  border-radius: 25px;
+}
+
 @media (max-width: 600px) {
   li {
     padding: 12px 15px;
