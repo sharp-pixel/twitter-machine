@@ -1,4 +1,4 @@
-// simple-todos.js
+// twitter-machine.js
 var CopyFollowers = new Mongo.Collection("copyfollowers");
 var NonFollowers = new Mongo.Collection("nonfollowers");
 var Fans = new Mongo.Collection("fans");
