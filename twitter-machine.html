@@ -56,6 +56,10 @@
             Hide previously followed users
           </label>
         </div>
+        <div class="location">
+          <span class="glyphicon glyphicon-map-marker" aria-hidden="true"></span>
+          <input type="text" name="location" placeholder="Comma-separated locations filter" />
+        </div>
       </section>
       <section>
         <ul>
@@ -129,11 +133,53 @@
   </div>
 </template>
 
+<template name="Blacklist">
+  <div class="container">
+    <div class="row">
+    <aside class="col-md-3">
+      {{> Nav}}
+    </aside>
+    <section class="col-md-9">
+      <section>
+        <h1>#Blacklist</h1>
+      </section>
+      <section>
+        {{#each blacklist}}
+        {{> user}}
+        {{/each}}
+      </section>
+    </section>      
+    </div>
+  </div>
+</template>
+
+<template name="Whitelist">
+  <div class="container">
+    <div class="row">
+    <aside class="col-md-3">
+      {{> Nav}}
+    </aside>
+    <section class="col-md-9">
+      <section>
+        <h1>#Whitelist</h1>
+      </section>
+      <section>
+        {{#each whitelist}}
+        {{> user}}
+        {{/each}}
+      </section>
+    </section>      
+    </div>
+  </div>
+</template>
+
 <template name="Nav">
   <ul>
     <li><a href="/nonFollowers">#NonFollowers</a></li>
     <li><a href="/fans">#Fans</a></li>
     <li><a href="/allFollowings">#AllFollowings</a></li>
     <li><a href="/copyFollowers">#CopyFollowers</a></li>
+    <li><a href="/blacklist">#Blacklist</a></li>
+    <li><a href="/whitelist">#Whitelist</a></li>
   </ul>
 </template>

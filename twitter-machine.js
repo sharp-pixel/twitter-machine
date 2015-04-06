@@ -3,6 +3,8 @@ var CopyFollowers = new Mongo.Collection("copyfollowers");
 var NonFollowers = new Mongo.Collection("nonfollowers");
 var Fans = new Mongo.Collection("fans");
 var AllFollowings = new Mongo.Collection("allfollowings");
+var Whitelist = new Mongo.Collection("whitelist");
+var Blacklist = new Mongo.Collection("blacklist");
 
 Router.route('/', function() {
   this.redirect('/nonFollowers');
@@ -12,27 +14,39 @@ Router.route('/nonFollowers');
 Router.route('/fans');
 Router.route('/copyFollowers');
 Router.route('/allFollowings');
+Router.route('/blacklist');
+Router.route('/whitelist');
 
 if (Meteor.isClient) {
   Meteor.subscribe("copyfollowers");
   Meteor.subscribe("nonfollowers");
   Meteor.subscribe("fans");
   Meteor.subscribe("allfollowings");
+  Meteor.subscribe("blacklist");
+  Meteor.subscribe("whitelist");
 
   Meteor.startup(function() {
+    Session.setDefault('locationFilter', '');
+
     Meteor.call('init'); // populate non-followers collection on client startup
   });
 
   // This code only runs on the client
   Template.CopyFollowers.helpers({
     followers: function () {
+      var filter = {};
       if (Session.get("hideFollowing")) {
-        // If hide completed is checked, filter tasks
-        return CopyFollowers.find({following: {$ne: true}}, {sort: {createdAt: -1}});
-      } else {
-        // Otherwise, return all of the tasks
-        return CopyFollowers.find({}, {sort: {createdAt: -1}});
+        filter.following = {$ne: true};
       }
+      
+      var location_filter = Session.get("locationFilter");
+
+      if (location_filter.length > 0) {
+        var regexp = build_regexp(location_filter);
+        filter.location = regexp;
+      }
+
+      return CopyFollowers.find(filter, {sort: {createdAt: -1}});
     },
     hideFollowing: function() {
       return Session.get("hideFollowing");
@@ -52,11 +66,15 @@ if (Meteor.isClient) {
     },
     "change .hide-following input": function (event) {
       Session.set("hideFollowing", event.target.checked);
+    },
+    "keyup .location, paste .location": function(event) {
+      //console.log(event.target.value);
+      Session.set('locationFilter', event.target.value);
     }
   });
 
   Template.user.events({
-    "click .follow": function () {
+    "click paste .follow": function () {
       console.log('Request follow');
     }
   });
@@ -77,7 +95,19 @@ if (Meteor.isClient) {
     allfollowings: function() {
       return AllFollowings.find({});
     }
-  })
+  });
+
+  Template.Blacklist.helpers({
+    blacklist: function() {
+      return Blacklist.find({});
+    }
+  });
+
+  Template.Whitelist.helpers({
+    blacklist: function() {
+      return Whitelist.find({});
+    }
+  });
 }
 
 if (Meteor.isServer) {
@@ -117,6 +147,14 @@ if (Meteor.isServer) {
 
   Meteor.publish("allfollowings", function() {
     return AllFollowings.find();
+  });
+
+  Meteor.publish("blacklist", function() {
+    return Blacklist.find();
+  });
+
+  Meteor.publish("whitelist", function() {
+    return Whitelist.find();
   });
 
   Meteor.methods({
@@ -333,4 +371,40 @@ function minus(A, B) {
   }
 
   return C;
+}
+
+function build_regexp(str) {
+  // Split comma-separated input string
+  //
+  str = str.replace(/ /g,''); // remove white spaces from input string
+  var array = str.split(','); // split comma-separated input string
+
+  // Build regexp for lazy search
+  var regexp = '';
+  var filler = '(\\w|\\s)*'
+  var first_word = true;
+
+  array.forEach(function(elt) {
+    var first_char = true;
+    if (!first_word) {
+      regexp += '|';
+    }
+
+    regexp += '(';
+    for (var i = 0; i < elt.length; ++i) {
+      if (!first_char) {
+        regexp += filler;
+      }
+
+      regexp += elt.charAt(i);
+
+      first_char = false;
+    }
+
+    regexp += ')';
+
+    first_word = false;
+  });
+
+  return new RegExp(regexp, 'i');
 }
