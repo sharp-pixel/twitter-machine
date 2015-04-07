@@ -1,0 +1,19 @@
+<template name="user">
+  <li class="{{#if following}}checked{{/if}}">
+    {{#unless following}}
+    <button class="follow">&plus;</button>
+    {{/unless}}
+    <div>
+      <img src="{{profile_image_url}}" alt="" width="50" height="50">
+    </div>
+    <div>
+      <div>
+        <span class="text">@{{screen_name}}</span> | <span>{{name}}</span> | <span>{{location}}</span>
+      </div>
+      <div>{{description}}</div>
+      <div>
+        <span>{{statuses_count}} Tweets</span> | <span>{{followers_count}} Followers</span> | <span>{{friends_count}} Following</span>
+      </div>
+    </div>
+  </li>
+</template>

@@ -1,0 +1,19 @@
+<template name="Whitelist">
+  <div class="container">
+    <div class="row">
+    <aside class="col-md-3">
+      {{> Nav}}
+    </aside>
+    <section class="col-md-9">
+      <section>
+        <h1>#Whitelist</h1>
+      </section>
+      <section>
+        {{#each whitelist}}
+        {{> user}}
+        {{/each}}
+      </section>
+    </section>      
+    </div>
+  </div>
+</template>

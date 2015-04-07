@@ -1,0 +1,19 @@
+<template name="AllFollowings">
+  <div class="container">
+    <div class="row">
+    <aside class="col-md-3">
+      {{> Nav}}
+    </aside>
+    <section class="col-md-9">
+      <section>
+        <h1>#AllFollowings</h1>
+      </section>
+      <section>
+        {{#each allfollowings}}
+        {{> user}}
+        {{/each}}
+      </section>
+    </section>      
+    </div>
+  </div>
+</template>

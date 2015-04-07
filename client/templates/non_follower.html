@@ -1,0 +1,19 @@
+<template name="NonFollowers">
+  <div class="container">
+    <div class="row">
+    <aside class="col-md-3">
+      {{> Nav}}
+    </aside>
+    <section class="col-md-9">
+      <section>
+        <h1>#NonFollowers</h1>
+      </section>
+      <section>
+        {{#each nonfollowers}}
+        {{> user}}
+        {{/each}}
+      </section>
+    </section>     
+    </div>
+  </div>
+</template>
