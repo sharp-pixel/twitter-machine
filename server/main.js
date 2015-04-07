@@ -1,8 +1,7 @@
-var T, me = null, Future, Promise;
+var T, me = null;
 
 Meteor.startup(function () {
   var Twit = Meteor.npmRequire('twit');
-  Future = Npm.require('fibers/future');
 
   var twitter_secret_string = Assets.getText('twitter-secret.json');
   var twitter_secret = JSON.parse(twitter_secret_string);

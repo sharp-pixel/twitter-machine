@@ -1,4 +1,6 @@
-function GetFollowersID(T, username) {
+Future = Npm.require('fibers/future');
+
+GetFollowersID = function(T, username) {
   cursor = -1;
   var followers = [];
 
@@ -40,7 +42,7 @@ function GetFollowersID(T, username) {
   return followers;
 }
 
-function GetFriendsID(T, username) {
+GetFriendsID = function(T, username) {
   var cursor = -1;
   var friends = [];
 
@@ -83,7 +85,7 @@ function GetFriendsID(T, username) {
 }
 
 // Get Twitter user objects from IDs
-function HydrateIDs(T, array) {
+HydrateIDs = function(T, array) {
   var result = [];
 
   if (array == null) {
