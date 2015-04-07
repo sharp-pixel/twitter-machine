@@ -166,8 +166,10 @@ if (Meteor.isServer) {
       CopyFollowers.remove({});
 
       var followers_ids = GetFollowersID(T, username);
+      console.log('Found ' + followers_ids.length + ' followers');
       var followers = HydrateIDs(T, followers_ids);
 
+      console.log('Now inserting to db');
       followers.forEach(function(elt, index, array) {
         CopyFollowers.insert(elt);
       });
@@ -240,7 +242,6 @@ function GetFollowersID(T, username) {
           // Limit reached, dispatch on another process ?
           console.log('Request limit reached for command "GET followers/ids"');
           future['return']({
-            data: [],
             cursor: 0
           });
         }
@@ -283,7 +284,6 @@ function GetFriendsID(T, username) {
           // Limit reached, dispatch on another process ?
           console.log('Request limit reached for command "GET friends/ids"');
           future['return']({
-            data: [],
             cursor: 0
           });
         }
@@ -325,11 +325,18 @@ function HydrateIDs(T, array) {
         }
         else {
           console.log('Request limit reached for command "GET users/lookup"');
+          future['return']([]);
         }
       }
     );
 
     var res = future.wait();
+
+    if (res.length == 0) {
+      break; // stop loop when no data is returned, most likely due to rate limit.
+    }
+
+    console.log(i + '/' + array.length);
 
     result = result.concat(res);
   }
