@@ -1,4 +1,4 @@
-<template name="CopyFollowers">
+<template name="CopyInfluencers">
   <div class="container">
     <div class="row">
       <aside class="col-md-3">
@@ -6,11 +6,11 @@
       </aside>
       <section class="col-md-9">
         <section>
+          <h1>#CopyInfluencers</h1>
+        </section>
+        <section>
           <div>
-            <h1>#CopyFollowers</h1>
-          </div>
-          <div>
-            <form class="search-followers">
+            <form class="search-influencers">
               <div class="input-group">
                 <span class="glyphicon glyphicon-search"></span>
                 <input type="text" name="username" placeholder="Search By Name" />
@@ -24,22 +24,11 @@
               Hide previously followed users
             </label>
           </div>
-          <div class="location">
-            <div class="input-group">
-              <span class="glyphicon glyphicon-map-marker"></span>
-              <input type="text" name="location" placeholder="Comma-separated locations filter" />
-            </div>
-          </div>
-          <div>
-            <button class="btn btn-medium btn-primary btn-copy">Copy followers</button>
-          </div>
         </section>
         <section>
-          <ul>
-            {{#each followers}}
-            {{> user}}
-            {{/each}}
-          </ul>
+          {{#each fans}}
+          {{> user}}
+          {{/each}}
         </section>
       </section>
     </div>

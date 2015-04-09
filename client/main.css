@@ -48,7 +48,7 @@ form {
   position: relative;
 }
 
-.search-followers input {
+.search-followers input, .search-influencers input, .location input {
   box-sizing: border-box;
   padding: 10px 0;
   background: transparent;

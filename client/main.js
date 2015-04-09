@@ -23,7 +23,7 @@ Template.CopyFollowers.helpers({
 
     if (location_filter.length > 0) {
       var regexp = build_regexp(location_filter);
-      filter.location = regexp;
+      filter.location = new RegExp(regexp, 'i');
     }
 
     return CopyFollowers.find(filter, {sort: {createdAt: -1}});
@@ -50,6 +50,24 @@ Template.CopyFollowers.events({
   "keyup .location, paste .location": function(event) {
     //console.log(event.target.value);
     Session.set('locationFilter', event.target.value);
+  },
+  "click .btn-copy": function(event) {
+    var filter = {
+      following: {$ne: true} // do not try to folloz already followed people.
+    };
+    
+    var location_filter = Session.get("locationFilter");
+
+    console.log('Filter: ' + location_filter);
+
+    if (location_filter.length > 0) {
+      var regexp = build_regexp(location_filter);
+      filter.location = regexp;
+    }
+
+    console.log(filter);
+
+    Meteor.call('copyFollowers', filter);
   }
 });
 

@@ -129,3 +129,18 @@ HydrateIDs = function(T, array) {
 
   return result;
 }
+
+FollowUser = function(T, sn) {
+  T.post('friendships/create',
+  {
+    screen_name: sn
+  },
+  function(err, data, response) {
+    if (err) {
+      console.log('friendships/create returned: ' + err);
+    }
+    else {
+      console.log('Followed @' + data.screen_name);
+    }
+  });
+}

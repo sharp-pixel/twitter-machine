@@ -60,8 +60,17 @@ Meteor.methods({
       CopyFollowers.insert(elt);
     });
   },
-  'copyFollowers': function() {
+  'copyFollowers': function(filter) {
     console.log('Received request to copy followers');
+    filter.location = new RegExp(filter.location, 'i');
+    var toFollow = CopyFollowers.find(filter).fetch();
+
+    console.log('Following ' + toFollow.length + ' people');
+
+    // perform follow, limit to 100 to check
+    toFollow.forEach(function(elt, index, array) {
+      FollowUser(T, elt.screen_name);
+    });
   },
   'init': function() {
     console.log('Initialize current user collections');
