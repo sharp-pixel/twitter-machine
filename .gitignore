@@ -1,3 +1,4 @@
 .meteor/local
 .meteor/meteorite
 private/twitter-secret.json
+.idea
