@@ -1,0 +1,6 @@
+<template name="progress">
+  <div class="progress" style="{{#if progress.hide}}display:none; {{/if}}">
+  	Loading, please wait... ({{progress.value}}/{{progress.max}})
+    <progress value="{{progress.value}}" max="{{progress.max}}"></progress>
+  </div>
+</template>

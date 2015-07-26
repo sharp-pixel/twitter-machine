@@ -1,5 +1,14 @@
 Future = Npm.require('fibers/future');
 
+InitTwitter = function (){
+  var Twit = Meteor.npmRequire('twit');
+
+  var twitter_secret_string = Assets.getText('twitter-secret.json');
+  var twitter_secret = JSON.parse(twitter_secret_string);
+
+  return new Twit(twitter_secret);
+};
+
 GetFollowersID = function(T, username) {
   var cursor = -1;
   var followers = [];
@@ -85,7 +94,7 @@ GetFriendsID = function(T, username) {
 };
 
 // Get Twitter user objects from IDs
-HydrateIDs = function(T, array) {
+HydrateIDs = function(T, array, notifProgress) {
   var result = [];
 
   if (array == null) {
@@ -121,11 +130,14 @@ HydrateIDs = function(T, array) {
     if (res.length == 0) {
       break; // stop loop when no data is returned, most likely due to rate limit.
     }
-
+    if (notifProgress)
+      notifProgress(i, array.length);
+    
     console.log(i + '/' + array.length);
 
     result = result.concat(res);
   }
+  notifProgress (null);//finished
 
   return result;
 };

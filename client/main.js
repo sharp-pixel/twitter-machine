@@ -9,6 +9,8 @@ Meteor.startup(function() {
   Session.setDefault('locationFilter', '');
 
   Meteor.call('init'); // populate non-followers collection on client startup
+  //todo move to ReactiveVar
+  Session.setDefault('progress', {value: 0, max: 100, hide: true});
 });
 
 // This code only runs on the client
@@ -32,15 +34,28 @@ Template.CopyFollowers.helpers({
     return Session.get("hideFollowing");
   }
 });
+function progressTick () {
+  Meteor.call('getProgress', function (error, result) {
+    Session.set("progress", result);
+    if (result.value == result.max)
+      Meteor.clearTimeout(tick);
+  });
+}
+
+Template.progress.helpers({
+  progress : function() {
+    return Session.get('progress');
+  }
+});
 
 Template.CopyFollowers.events({
   "submit .search-followers": function (event) {
     // This function is called when the new task form is submitted
     var username = event.target.username.value;
 
+    var tick = Meteor.setInterval(progressTick, 1000);
     // Call server method to do the work
     Meteor.call('getFollowers', username);
-
     // Prevent default form submit
     return false;
   },
