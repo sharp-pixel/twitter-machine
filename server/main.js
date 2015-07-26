@@ -1,12 +1,8 @@
 var T, me = null;
+var progress = {value: 0, max: 100, hide: true};
 
 Meteor.startup(function () {
-  var Twit = Meteor.npmRequire('twit');
-
-  var twitter_secret_string = Assets.getText('twitter-secret.json');
-  var twitter_secret = JSON.parse(twitter_secret_string);
-
-  T = new Twit(twitter_secret);
+  T = InitTwitter();
 
   T.get('account/settings', {}, function(err, data, response) {
     if (data != null) {
@@ -43,6 +39,17 @@ Meteor.publish("whitelist", function() {
   return Whitelist.find();
 });
 
+ProgressHandler = function(i, max) {
+  if (!i) {
+    progress.hide = true;
+    progress.value = progress.max;
+    return;
+  } else {
+    progress.value = i;
+    progress.max = max;
+    progress.hide = false;
+  }
+}
 Meteor.methods({
   'getFollowers': function(username) {
     console.log('Received request to get followers for @' + username);
@@ -50,10 +57,10 @@ Meteor.methods({
 
     // Clear db
     CopyFollowers.remove({});
-
     var followers_ids = GetFollowersID(T, username);
     console.log('Found ' + followers_ids.length + ' followers');
-    var followers = HydrateIDs(T, followers_ids);
+    this.unblock();
+    var followers = HydrateIDs(T, followers_ids, ProgressHandler);
 
     console.log('Now inserting to db');
     followers.forEach(function(elt, index, array) {
@@ -72,6 +79,9 @@ Meteor.methods({
       FollowUser(T, elt.screen_name);
     });
   },
+  'getProgress' : function() {
+    return progress;
+  },
   'init': function() {
     console.log('Initialize current user collections');
 
@@ -86,20 +96,20 @@ Meteor.methods({
       var followers = GetFollowersID(T, username);
       var friends = GetFriendsID(T, username);
       var non_followers_IDs = minus(friends, followers); // non-followers are people followed by current user but not following him back.
-      var non_followers = HydrateIDs(T, non_followers_IDs);
+      var non_followers = HydrateIDs(T, non_followers_IDs, ProgressHandler);
       
       non_followers.forEach(function(elt, index, array) {
        NonFollowers.insert(elt);
       });
 
       var fans_IDs = minus(followers, friends); // fans are people that follow current user but not followed back.
-      var fans = HydrateIDs(T, fans_IDs);
+      var fans = HydrateIDs(T, fans_IDs, ProgressHandler);
       
       fans.forEach(function(elt, index, array) {
        Fans.insert(elt);
       });
 
-      var following = HydrateIDs(T, friends);
+      var following = HydrateIDs(T, friends, ProgressHandler);
 
       following.forEach(function(elt, index, array) {
        AllFollowings.insert(elt);
